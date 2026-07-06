@@ -3,3 +3,7 @@
 **/bin/
 __HipsReport/
 ___All_Errors.txt
+
+# Application config (may contain secrets)
+*.properties
+!**/.mvn/wrapper/maven-wrapper.properties
