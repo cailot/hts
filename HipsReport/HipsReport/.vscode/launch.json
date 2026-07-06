@@ -1,0 +1,14 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-HipsReportApplication<hipsreport>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "au.org.htsv.hips.report.HipsReportApplication",
+            "projectName": "hipsreport",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}
