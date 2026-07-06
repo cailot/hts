@@ -3,3 +3,6 @@
 **/bin/
 __HipsReport/
 ___All_Errors.txt
+
+# Application config (contains secrets)
+**/application*.properties
