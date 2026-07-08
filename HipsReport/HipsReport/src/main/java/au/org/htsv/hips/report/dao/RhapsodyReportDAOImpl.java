@@ -3,9 +3,6 @@ package au.org.htsv.hips.report.dao;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.persistence.EntityManager;
-import javax.persistence.Query;
-
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,7 +16,7 @@ import au.org.htsv.hips.report.util.ExceptionReportConstants;
 public class RhapsodyReportDAOImpl implements RhapsodyReportDAO {
 
 	@Autowired
-	private EntityManager entityManager;
+	private ArchiveAwareQueryExecutor queryExecutor;
 
 	//////////////////////////////////////////////
 	//			Success Upload Count			//
@@ -429,33 +426,21 @@ public class RhapsodyReportDAOImpl implements RhapsodyReportDAO {
 	// return the count using facility codes
 	private int getCountByFacility(String sql, String from, String to, String facility) {
 		List<String> facilities = getFacilityCodes(facility);
-		Integer count = (Integer) entityManager.createNativeQuery(sql)
-				.setParameter(ExceptionReportConstants.FROM_DATE, from)
-				.setParameter(ExceptionReportConstants.TO_DATE, to)
-				.setParameter(ExceptionReportConstants.FACILITY_CODE, facilities)
-				.getSingleResult();
-		return count.intValue();
+		return queryExecutor.executeCount(sql, query -> query.setParameter(ExceptionReportConstants.FACILITY_CODE, facilities), from, to);
 	}
 	
 	// return the count using hospitalIds
 	private int getCountByHospital(String sql, String from, String to, List<String> hospitalIds) {
-		Integer count = (Integer) entityManager.createNativeQuery(sql)
-				.setParameter(ExceptionReportConstants.FROM_DATE, from)
-				.setParameter(ExceptionReportConstants.TO_DATE, to)
-				.setParameter(ExceptionReportConstants.HOSPITAL_ID, hospitalIds)
-				.getSingleResult();
-		return count.intValue();
+		return queryExecutor.executeCount(sql, query -> query.setParameter(ExceptionReportConstants.HOSPITAL_ID, hospitalIds), from, to);
 	}
 	
 	// return exception list using facility codes
 	private List<ExceptionListData> getListByFacility(String sql, String from, String to, String facility, List<String> documentNames) {
 		List<String> facilities = getFacilityCodes(facility);
-		Query query = entityManager.createNativeQuery(sql);
-		query.setParameter(ExceptionReportConstants.FACILITY_CODE, facilities);
-		query.setParameter(ExceptionReportConstants.DOCUMENT_NAME, documentNames);
-		query.setParameter(ExceptionReportConstants.FROM_DATE, from);
-		query.setParameter(ExceptionReportConstants.TO_DATE, to);
-		List<Object[]> results = query.getResultList();
+		List<Object[]> results = queryExecutor.executeList(sql, query -> {
+			query.setParameter(ExceptionReportConstants.FACILITY_CODE, facilities);
+			query.setParameter(ExceptionReportConstants.DOCUMENT_NAME, documentNames);
+		}, from, to);
 		List<ExceptionListData> list = new ArrayList<ExceptionListData>(results.size());
 		for (Object[] r : results) {
 			ExceptionListData data = new ExceptionListData(r);
@@ -467,20 +452,17 @@ public class RhapsodyReportDAOImpl implements RhapsodyReportDAO {
 		return list;
 	}
 	
-	// return exception list using facility codes
+	// return exception list using hospitalIds
 	private List<ExceptionListData> getListByHospital(String sql, String from, String to, List<String> hospitalIds, List<Integer> documentIds) {
-		Query query = entityManager.createNativeQuery(sql);
-		query.setParameter(ExceptionReportConstants.HOSPITAL_ID, hospitalIds);
-		query.setParameter(ExceptionReportConstants.DOCUMENT_ID, documentIds);
-		query.setParameter(ExceptionReportConstants.FROM_DATE, from);
-		query.setParameter(ExceptionReportConstants.TO_DATE, to);
-		List<Object[]> results = query.getResultList();
+		List<Object[]> results = queryExecutor.executeList(sql, query -> {
+			query.setParameter(ExceptionReportConstants.HOSPITAL_ID, hospitalIds);
+			query.setParameter(ExceptionReportConstants.DOCUMENT_ID, documentIds);
+		}, from, to);
 		List<ExceptionListData> list = new ArrayList<ExceptionListData>(results.size());
 		for (Object[] r : results) {
 			ExceptionListData data = new ExceptionListData(r);
 			data.setFromDate(from);
 			data.setToDate(to);
-			//data.setFacility(facility);
 			list.add(data);
 		}
 		return list;
@@ -492,11 +474,7 @@ public class RhapsodyReportDAOImpl implements RhapsodyReportDAO {
 	
 	private List<ExceptionAuditData> getAuditInfo(String sql, String from, String to, String facility) {
 		List<String> facilities = getFacilityCodes(facility);
-		Query query = entityManager.createNativeQuery(sql);
-		query.setParameter(ExceptionReportConstants.FACILITY_CODE, facilities);
-		query.setParameter(ExceptionReportConstants.FROM_DATE, from);
-		query.setParameter(ExceptionReportConstants.TO_DATE, to);
-		List<Object[]> results = query.getResultList();
+		List<Object[]> results = queryExecutor.executeList(sql, query -> query.setParameter(ExceptionReportConstants.FACILITY_CODE, facilities), from, to);
 		List<ExceptionAuditData> list = new ArrayList<ExceptionAuditData>(results.size());
 		for (Object[] r : results) {
 			ExceptionAuditData data = new ExceptionAuditData(r);
@@ -510,12 +488,10 @@ public class RhapsodyReportDAOImpl implements RhapsodyReportDAO {
 	
 	private List<ExceptionAuditData> getAuditInfo(String sql, String patient, String from, String to, String facility) {
 		List<String> facilities = getFacilityCodes(facility);
-		Query query = entityManager.createNativeQuery(sql);
-		query.setParameter(ExceptionReportConstants.FACILITY_CODE, facilities);
-		query.setParameter(ExceptionReportConstants.FROM_DATE, from);
-		query.setParameter(ExceptionReportConstants.TO_DATE, to);
-		query.setParameter(ExceptionReportConstants.PATIENT_INFO, patient);
-		List<Object[]> results = query.getResultList();
+		List<Object[]> results = queryExecutor.executeList(sql, query -> {
+			query.setParameter(ExceptionReportConstants.FACILITY_CODE, facilities);
+			query.setParameter(ExceptionReportConstants.PATIENT_INFO, patient);
+		}, from, to);
 		List<ExceptionAuditData> list = new ArrayList<ExceptionAuditData>(results.size());
 		for (Object[] r : results) {
 			ExceptionAuditData data = new ExceptionAuditData(r);
