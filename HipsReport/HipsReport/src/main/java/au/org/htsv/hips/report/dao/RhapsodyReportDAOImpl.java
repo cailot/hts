@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
@@ -11,12 +13,18 @@ import org.springframework.stereotype.Repository;
 import au.org.htsv.hips.report.entity.ExceptionAuditData;
 import au.org.htsv.hips.report.entity.ExceptionListData;
 import au.org.htsv.hips.report.util.ExceptionReportConstants;
+import au.org.htsv.hips.report.util.ExceptionReportUtils;
 
 @Repository
 public class RhapsodyReportDAOImpl implements RhapsodyReportDAO {
 
+	private static final Logger LOG = LoggerFactory.getLogger(RhapsodyReportDAOImpl.class);
+
 	@Autowired
-	private ArchiveAwareQueryExecutor queryExecutor;
+	private ArchiveQueryDAO archiveQueryDAO;
+
+	@Value("${report.archive.cutoff-months:3}")
+	private int archiveCutoffMonths;
 
 	//////////////////////////////////////////////
 	//			Success Upload Count			//
@@ -425,19 +433,22 @@ public class RhapsodyReportDAOImpl implements RhapsodyReportDAO {
 	
 	// return the count using facility codes
 	private int getCountByFacility(String sql, String from, String to, String facility) {
+		logQueryDateRange("getCountByFacility", from, to);
 		List<String> facilities = getFacilityCodes(facility);
-		return queryExecutor.executeCount(sql, query -> query.setParameter(ExceptionReportConstants.FACILITY_CODE, facilities), from, to);
+		return archiveQueryDAO.executeCount(sql, query -> query.setParameter(ExceptionReportConstants.FACILITY_CODE, facilities), from, to);
 	}
 	
 	// return the count using hospitalIds
 	private int getCountByHospital(String sql, String from, String to, List<String> hospitalIds) {
-		return queryExecutor.executeCount(sql, query -> query.setParameter(ExceptionReportConstants.HOSPITAL_ID, hospitalIds), from, to);
+		logQueryDateRange("getCountByHospital", from, to);
+		return archiveQueryDAO.executeCount(sql, query -> query.setParameter(ExceptionReportConstants.HOSPITAL_ID, hospitalIds), from, to);
 	}
 	
 	// return exception list using facility codes
 	private List<ExceptionListData> getListByFacility(String sql, String from, String to, String facility, List<String> documentNames) {
+		logQueryDateRange("getListByFacility", from, to);
 		List<String> facilities = getFacilityCodes(facility);
-		List<Object[]> results = queryExecutor.executeList(sql, query -> {
+		List<Object[]> results = archiveQueryDAO.executeList(sql, query -> {
 			query.setParameter(ExceptionReportConstants.FACILITY_CODE, facilities);
 			query.setParameter(ExceptionReportConstants.DOCUMENT_NAME, documentNames);
 		}, from, to);
@@ -454,7 +465,8 @@ public class RhapsodyReportDAOImpl implements RhapsodyReportDAO {
 	
 	// return exception list using hospitalIds
 	private List<ExceptionListData> getListByHospital(String sql, String from, String to, List<String> hospitalIds, List<Integer> documentIds) {
-		List<Object[]> results = queryExecutor.executeList(sql, query -> {
+		logQueryDateRange("getListByHospital", from, to);
+		List<Object[]> results = archiveQueryDAO.executeList(sql, query -> {
 			query.setParameter(ExceptionReportConstants.HOSPITAL_ID, hospitalIds);
 			query.setParameter(ExceptionReportConstants.DOCUMENT_ID, documentIds);
 		}, from, to);
@@ -473,8 +485,9 @@ public class RhapsodyReportDAOImpl implements RhapsodyReportDAO {
 	
 	
 	private List<ExceptionAuditData> getAuditInfo(String sql, String from, String to, String facility) {
+		logQueryDateRange("getAuditInfo", from, to);
 		List<String> facilities = getFacilityCodes(facility);
-		List<Object[]> results = queryExecutor.executeList(sql, query -> query.setParameter(ExceptionReportConstants.FACILITY_CODE, facilities), from, to);
+		List<Object[]> results = archiveQueryDAO.executeList(sql, query -> query.setParameter(ExceptionReportConstants.FACILITY_CODE, facilities), from, to);
 		List<ExceptionAuditData> list = new ArrayList<ExceptionAuditData>(results.size());
 		for (Object[] r : results) {
 			ExceptionAuditData data = new ExceptionAuditData(r);
@@ -487,8 +500,9 @@ public class RhapsodyReportDAOImpl implements RhapsodyReportDAO {
 	}
 	
 	private List<ExceptionAuditData> getAuditInfo(String sql, String patient, String from, String to, String facility) {
+		logQueryDateRange("getAuditInfo", from, to);
 		List<String> facilities = getFacilityCodes(facility);
-		List<Object[]> results = queryExecutor.executeList(sql, query -> {
+		List<Object[]> results = archiveQueryDAO.executeList(sql, query -> {
 			query.setParameter(ExceptionReportConstants.FACILITY_CODE, facilities);
 			query.setParameter(ExceptionReportConstants.PATIENT_INFO, patient);
 		}, from, to);
@@ -514,6 +528,11 @@ public class RhapsodyReportDAOImpl implements RhapsodyReportDAO {
 			codes.add(facility);
 		}
 		return codes;
+	}
+
+	private void logQueryDateRange(String queryType, String from, String to) {
+		LOG.info("RhapsodyReportDAO {} fromDate={}, toDate={}, routing={}",
+				queryType, from, to, ExceptionReportUtils.describeArchiveRouting(from, to, archiveCutoffMonths));
 	}
 
 	

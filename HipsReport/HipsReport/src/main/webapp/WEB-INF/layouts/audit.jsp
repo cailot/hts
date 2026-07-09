@@ -97,25 +97,7 @@
 	
 	var today = new Date();
 		$(function() {
-			$("#fromDate").datepicker({
-				dateFormat : 'dd/mm/yy',
-				minDate: "-6w",
-				setDate : true,
-				maxDate : new Date(today.setDate(today.getDate())), 
-				numberOfMonths : 1,
-				onClose : function(selectedDate) {
-					$("#toDate").datepicker("option", "minDate", selectedDate);
-				}
-			});
-			$("#toDate").datepicker({
-				dateFormat : 'dd/mm/yy',
-				changeMonth : false,
-				maxDate : new Date(today.setDate(today.getDate())), 
-				numberOfMonths : 1,
-				onClose : function(selectedDate) {
-					$("#fromDate").datepicker("option", "maxDate", selectedDate);
-				}
-			});
+			initReportDatePickers();
 		});
 
 		function showPatient(auditId){
@@ -205,6 +187,7 @@
 					placeholder="To" readonly />
 			</div>
 			<button type="submit" class="btn btn-primary" id="searchDate"  onclick="return validateFormWithPatientInfo();">Search</button>
+			<button type="button" class="btn btn-info ml-2" id="clearDate" onclick="return clearSearchForm();">Clear</button>
 			<input type="hidden" name="searchCheck" value="true" />
 			</form>
 		</div>
@@ -283,7 +266,7 @@
 	<div class="modal-dialog">
 		<div class="alert alert-block alert-danger">
 			<a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
-			<i class="fa fa-frown-o fa-lg"></i>&nbsp;&nbsp;Please make sure <b>Hospital</b>, <b>Patient Information</b>, <b>FromDate</b> & <b>ToDate</b> within last month filled in
+			<i class="fa fa-frown-o fa-lg"></i>&nbsp;&nbsp;<span id="validation-error-message">Please make sure <b>Hospital</b>, <b>Patient Information</b>, <b>FromDate</b> & <b>ToDate</b> are filled in.<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FromDate can go back up to 2 years, and the date range cannot exceed 6 weeks.</span>
 		</div>
 	</div>
 </div>
@@ -296,7 +279,7 @@
         <!-- header title -->
         <h4 class="modal-title text-info" id="patientInfoHeader">Header</h4>
         <!-- x button -->
-        <button type="button" class="close" data-dismiss="modal">×</button>
+        <button type="button" class="close" data-dismiss="modal">?</button>
         
       </div>
       <!-- body -->

@@ -14,7 +14,7 @@ import au.org.htsv.hips.report.util.ExceptionReportConstants;
 public class AuxiliaryInformationDAOImpl implements AuxiliaryInformationDAO {
 
 	@Autowired
-	private ArchiveAwareQueryExecutor queryExecutor;
+	private ArchiveQueryDAO archiveQueryDAO;
 
 	@Value("${sql.retreive.original.message}")
 	private String originalMessage;
@@ -26,7 +26,7 @@ public class AuxiliaryInformationDAOImpl implements AuxiliaryInformationDAO {
 	
 	@Override
 	public String retrieveMessage(String id) {
-		return queryExecutor.executeSingleResult(originalMessage,
+		return archiveQueryDAO.executeSingleResult(originalMessage,
 				query -> query.setParameter(ExceptionReportConstants.AUDIT_ID, id));
 	}
 
@@ -34,7 +34,7 @@ public class AuxiliaryInformationDAOImpl implements AuxiliaryInformationDAO {
 	@Override
 	public PatientData retrievePatient(String id) {
 		try {
-			Object[] result = queryExecutor.executeSingleRow(patientInfo,
+			Object[] result = archiveQueryDAO.executeSingleRow(patientInfo,
 					query -> query.setParameter(ExceptionReportConstants.PATIENT_ID, id));
 			return new PatientData(result);
 		} catch (NoResultException e) {

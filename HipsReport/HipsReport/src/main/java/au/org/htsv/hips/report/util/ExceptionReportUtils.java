@@ -2,6 +2,9 @@ package au.org.htsv.hips.report.util;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -17,6 +20,7 @@ import au.org.htsv.hips.report.entity.ExceptionSimpleData;
  */
 public class ExceptionReportUtils {
 
+	private static final DateTimeFormatter ARCHIVE_DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 	
 	public static List acronyms;
 	
@@ -158,5 +162,52 @@ public class ExceptionReportUtils {
 					"(?<=[A-Za-z])(?=[^A-Za-z])"),	
 					" "
 		);
+	}
+
+	public static ArchiveQueryPlan buildArchiveQueryPlan(String from, String to, int cutoffMonths) {
+		LocalDateTime fromDateTime = parseArchiveDateTime(from);
+		LocalDateTime toDateTime = parseArchiveDateTime(to);
+		LocalDateTime cutoff = LocalDate.now().minusMonths(cutoffMonths).atStartOfDay();
+
+		if (toDateTime.isBefore(cutoff)) {
+			return ArchiveQueryPlan.archiveOnly(from, to);
+		}
+		if (!fromDateTime.isBefore(cutoff)) {
+			return ArchiveQueryPlan.primaryOnly(from, to);
+		}
+
+		String archiveTo = formatArchiveDateTime(cutoff.minusSeconds(1));
+		String primaryFrom = formatArchiveDateTime(cutoff);
+		return ArchiveQueryPlan.both(from, archiveTo, primaryFrom, to);
+	}
+
+	public static boolean isArchiveOnly(String from, String to, int cutoffMonths) {
+		LocalDateTime toDateTime = parseArchiveDateTime(to);
+		LocalDateTime cutoff = LocalDate.now().minusMonths(cutoffMonths).atStartOfDay();
+		return toDateTime.isBefore(cutoff);
+	}
+
+	public static boolean isPrimaryOnly(String from, String to, int cutoffMonths) {
+		ArchiveQueryPlan plan = buildArchiveQueryPlan(from, to, cutoffMonths);
+		return plan.isQueryPrimary() && !plan.isQueryArchive();
+	}
+
+	public static String describeArchiveRouting(String from, String to, int cutoffMonths) {
+		ArchiveQueryPlan plan = buildArchiveQueryPlan(from, to, cutoffMonths);
+		if (plan.isQueryPrimary() && !plan.isQueryArchive()) {
+			return "within " + cutoffMonths + " months, primary datasource only";
+		}
+		if (plan.isQueryArchive() && !plan.isQueryPrimary()) {
+			return "older than " + cutoffMonths + " months, archive datasource only";
+		}
+		return "spans " + cutoffMonths + " month cutoff, archive and primary datasources";
+	}
+
+	private static LocalDateTime parseArchiveDateTime(String value) {
+		return LocalDateTime.parse(value, ARCHIVE_DATE_TIME_FORMATTER);
+	}
+
+	private static String formatArchiveDateTime(LocalDateTime value) {
+		return value.format(ARCHIVE_DATE_TIME_FORMATTER);
 	}
 }

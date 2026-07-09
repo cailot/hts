@@ -112,25 +112,7 @@ $(document).ready( function () {
 
 var today = new Date();
 	$(function() {
-		$("#fromDate").datepicker({
-			dateFormat : 'dd/mm/yy',
-			minDate: "-6w",
-			setDate : true,
-			maxDate : new Date(today.setDate(today.getDate())), 
-			numberOfMonths : 1,
-			onClose : function(selectedDate) {
-				$("#toDate").datepicker("option", "minDate", selectedDate);
-			}
-		});
-		$("#toDate").datepicker({
-			dateFormat : 'dd/mm/yy',
-			changeMonth : false,
-			maxDate : new Date(today.setDate(today.getDate())), 
-			numberOfMonths : 1,
-			onClose : function(selectedDate) {
-				$("#fromDate").datepicker("option", "maxDate", selectedDate);
-			}
-		});
+		initReportDatePickers();
 	});
 
 	function showMessage(auditId){
@@ -213,6 +195,7 @@ var today = new Date();
 				<input type="text" class="form-control" id="toDate" name="toDate" value="${toDate}" placeholder="To" readonly />
 			</div>
 			<button type="submit" class="btn btn-primary" id="searchDate"  onclick="passDocuments();return validateFormWithDetail();">Search</button>
+			<button type="button" class="btn btn-info ml-2" id="clearDate" onclick="return clearSearchForm();">Clear</button>
 			<input type="hidden" name="searchCheck" value="true" />
 			</form>
 		</div>
@@ -304,7 +287,7 @@ var today = new Date();
 	<div class="modal-dialog">
 		<div class="alert alert-block alert-danger">
 			<a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
-			<i class="fa fa-frown-o fa-lg"></i>&nbsp;&nbsp;Please make sure <b>Hospital</b>, <b>Document</b>, <b>FromDate</b> & <b>ToDate</b>&nbsp;&nbsp;within last week filled in
+			<i class="fa fa-frown-o fa-lg"></i>&nbsp;&nbsp;<span id="validation-error-message">Please make sure <b>Hospital</b>, <b>Document</b>, <b>FromDate</b> & <b>ToDate</b> are filled in.<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;FromDate can go back up to 2 years, and the date range cannot exceed 6 weeks.</span>
 		</div>
 	</div>
 </div>
@@ -316,7 +299,7 @@ var today = new Date();
         <!-- header title -->
         <h4 class="modal-title text-info" id="messageName">Header</h4>
         <!-- x button -->
-        <button type="button" class="close" data-dismiss="modal">×</button>
+        <button type="button" class="close" data-dismiss="modal">?</button>
         
       </div>
       <!-- body -->
