@@ -2,12 +2,16 @@ package au.org.htsv.hips.report.dao;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 import java.util.function.Consumer;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
 import javax.persistence.NoResultException;
 import javax.persistence.Query;
+import javax.sql.DataSource;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +20,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.SharedEntityManagerCreator;
+import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 import org.springframework.stereotype.Repository;
 
 import au.org.htsv.hips.report.util.ArchiveQueryPlan;
@@ -31,9 +36,10 @@ public class ArchiveQueryDAOImpl implements ArchiveQueryDAO {
 	private EntityManager entityManager;
 
 	@Autowired(required = false)
-	@Qualifier("archiveEntityManagerFactory")
-	private LocalContainerEntityManagerFactoryBean archiveEntityManagerFactoryBean;
+	@Qualifier("archiveDataSource")
+	private DataSource archiveDataSource;
 
+	private EntityManagerFactory archiveEntityManagerFactory;
 	private EntityManager archiveEntityManager;
 
 	@Value("${report.archive.cutoff-months:3}")
@@ -41,9 +47,32 @@ public class ArchiveQueryDAOImpl implements ArchiveQueryDAO {
 
 	@PostConstruct
 	public void initArchiveEntityManager() {
-		if (archiveEntityManagerFactoryBean != null) {
-			archiveEntityManager = SharedEntityManagerCreator.createSharedEntityManager(
-					archiveEntityManagerFactoryBean.getObject());
+		if (archiveDataSource == null) {
+			LOG.info("Archive datasource is not configured; archive routing disabled");
+			return;
+		}
+
+		LocalContainerEntityManagerFactoryBean factoryBean = new LocalContainerEntityManagerFactoryBean();
+		factoryBean.setDataSource(archiveDataSource);
+		factoryBean.setPackagesToScan("au.org.htsv.hips.report");
+		factoryBean.setPersistenceUnitName("archive");
+		factoryBean.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
+
+		Properties jpaProperties = new Properties();
+		jpaProperties.put("hibernate.dialect", "org.hibernate.dialect.SQLServer2012Dialect");
+		jpaProperties.put("hibernate.show_sql", "true");
+		factoryBean.setJpaProperties(jpaProperties);
+		factoryBean.afterPropertiesSet();
+
+		archiveEntityManagerFactory = factoryBean.getObject();
+		archiveEntityManager = SharedEntityManagerCreator.createSharedEntityManager(archiveEntityManagerFactory);
+		LOG.info("Archive EntityManager initialized; primary EntityManager remains on spring.datasource");
+	}
+
+	@PreDestroy
+	public void closeArchiveEntityManagerFactory() {
+		if (archiveEntityManagerFactory != null) {
+			archiveEntityManagerFactory.close();
 		}
 	}
 

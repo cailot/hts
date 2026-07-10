@@ -2,32 +2,32 @@ package au.org.htsv.hips.report.config;
 
 import javax.sql.DataSource;
 
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.orm.jpa.EntityManagerFactoryBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
+import org.springframework.context.annotation.Primary;
 
+/**
+ * Declaring any DataSource bean disables Spring Boot DataSource auto-config.
+ * Primary must therefore be created explicitly from {@link DataSourceProperties}
+ * (so {@code spring.datasource.url} maps correctly for Hikari as jdbcUrl).
+ * Archive remains a separate non-primary DataSource.
+ */
 @Configuration
-@ConditionalOnProperty(name = "spring.archive.url")
 @EnableConfigurationProperties(ArchiveDataSourceProperties.class)
 public class ArchiveDataSourceConfig {
 
-	@Bean(name = "archiveDataSource")
-	public DataSource archiveDataSource(ArchiveDataSourceProperties archiveDataSourceProperties) {
-		return archiveDataSourceProperties.buildDataSource();
+	@Bean(name = "dataSource")
+	@Primary
+	public DataSource dataSource(DataSourceProperties dataSourceProperties) {
+		return dataSourceProperties.initializeDataSourceBuilder().build();
 	}
 
-	@Bean(name = "archiveEntityManagerFactory")
-	public LocalContainerEntityManagerFactoryBean archiveEntityManagerFactory(
-			EntityManagerFactoryBuilder builder,
-			@Qualifier("archiveDataSource") DataSource archiveDataSource) {
-		return builder
-				.dataSource(archiveDataSource)
-				.packages("au.org.htsv.hips.report")
-				.persistenceUnit("archive")
-				.build();
+	@Bean(name = "archiveDataSource")
+	@ConditionalOnProperty(name = "spring.archive.url")
+	public DataSource archiveDataSource(ArchiveDataSourceProperties archiveDataSourceProperties) {
+		return archiveDataSourceProperties.buildDataSource();
 	}
 }

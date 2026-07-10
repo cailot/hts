@@ -40,7 +40,7 @@ function updateToDateLimits(fromDate) {
   if (maxTo > today) {
     maxTo = today;
   }
-  $("#toDate").datepicker("option", "minDate", fromDate);
+  $("#toDate").datepicker("option", "minDate", 
   $("#toDate").datepicker("option", "maxDate", maxTo);
 }
 
